@@ -12,6 +12,12 @@ Warn you when a component's query is not included in its parent's:
 
 More to come - see the roadmap below.
 
+## Status
+
+This is very alpha, under active development. However it is already useful. So do not hesitate to try it out!
+
+Get in touch with `@holyjak` in the `#fulcro` channel of the Clojurians Slack if you have any questions or comments.
+
 ## Usage
 
 Add the library to your project:
@@ -21,8 +27,11 @@ Add the library to your project:
 :aliases
 {:dev {:extra-deps {holyjak/fulcro-troubleshooting
                     {:git/url "https://github.com/holyjak/fulcro-troubleshooting"
-                     :sha "463fb0dbb0a3cc73bbae538e190867afbd0867ac"}}}
+                     ;; run `clojure -X:deps git-resolve-tags` to insert the correct :sha
+                     :tag "latest"}}}
 ```
+
+(Assuming you have activated the `dev` alias in your `shadow-cljs.edn`.)
 
 When you create your Fulcro/RAD app, add the middleware provided by the library:
 
@@ -37,8 +46,8 @@ When you create your Fulcro/RAD app, add the middleware provided by the library:
 
 ## Roadmap
 
-[x] Warn when a component's query is not included in its parent's
-[ ] Warn when data for a component is missing in the client DB due to bad ident or missing load targeting
+- [x] Warn when a component's query is not included in its parent's
+- [ ] Warn when data for a component is missing in the client DB due to bad ident or missing load targeting
 
 ## License
 
