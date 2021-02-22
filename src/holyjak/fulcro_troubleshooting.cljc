@@ -1,8 +1,7 @@
 (ns holyjak.fulcro-troubleshooting
   (:require
    [com.fulcrologic.fulcro.components :as comp] 
-   [com.fulcrologic.fulcro.dom :as dom]
-   ))
+   [com.fulcrologic.fulcro.dom :as dom]))
 
 (defn now-ms []
   (inst-ms
@@ -56,7 +55,10 @@
         (some->> (vector (now-ms))
                  (swap! unjoined-components assoc component-instance)))))
 
-(defn troubleshooting-render-middleware [component-instance real-render]
+(defn troubleshooting-render-middleware 
+  "Add this middleware to your fulcro app (as `(app/fulcro-app {:render-middleware ...})`)
+   to get notified in the UI when you did something wrong."
+  [component-instance real-render]
   (if-let [ancestor (ancestor-failing-to-join-query-of component-instance)]
     (dom/div {:style {:border "lime 2px solid"}}
              (dom/div

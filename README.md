@@ -6,7 +6,17 @@ For additional help, see the [Fulcro Troubleshooting Decision Tree](https://blog
 
 ## Usage
 
-When you create your Fulcro/RAD app, add the middleware provided by the app:
+Add the library to your project:
+
+```clojure
+;; deps.edn
+:aliases
+{:dev {:extra-deps {holyjak/fulcro-troubleshooting
+                    {:git/url "https://github.com/holyjak/fulcro-troubleshooting"
+                     :sha "463fb0dbb0a3cc73bbae538e190867afbd0867ac"}}}
+```
+
+When you create your Fulcro/RAD app, add the middleware provided by the library:
 
 ```clojure
 (ns my.app
