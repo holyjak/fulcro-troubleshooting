@@ -72,6 +72,20 @@
   (and (= ident-id :com.fulcrologic.fulcro.routing.dynamic-routing/id)
        (str/starts-with? (name prop) "alt")))
 
+(defn empty-props-warning [ident props]
+  (let [link-or-ident-query? (vector? (first props))]
+    (str "These "
+         (when link-or-ident-query? "ident/link query")
+         " join props " (str/join ", " props)
+         " have no data in the client DB (expected them " 
+         (if (or link-or-ident-query? (nil? ident)) 
+           (str "at the root")
+           (str "under `" (str/join " " ident) "`"))
+         "). Thus they will get `nil`. This might be intended - or you might have"
+         " forgotten to provide `:initial-state {}` for a component with only Link Query"
+         " (and/or forgot to include it in the parent's initial state)"
+         " or you might have `load!`-ed data into the wrong part of the client DB (look at data targeting).")))
+
 (defn check-missing-child-prop
   "Is the join prop for a child missing from the client DB (=> the child will get nil props)?
   This could be due to a Link Query - only child with missing initial state or data that was
@@ -99,17 +113,13 @@
     ;;   (def *dbg component-instance)
     ;;   #_(js/console.log "check-missing-child-prop for Root:" {:join-props join-props, :joins-w-data joins-w-data}))
     
-    ;; FIXME Handle ident, link queries
-    (when-let [empty-join-props (seq (clojure.set/difference join-props joins-w-data))]
-      (ex-info (str "These join props " (str/join ", " empty-join-props)
-                    " have no data in the client DB (expected them under `" 
-                    (str/join " " (comp/ident component-instance props)) "`)."
-                    " Thus they will get `nil`. This might be intended - or you might have"
-                    " forgotten to provide `:initial-state {}` for a component with only Link Query"
-                    " (and/or forgot to include it in the parent's initial state)"
-                    " or you might have `load!`-ed data into the wrong part of the client DB (look at data targeting).") 
+    (when-let [{empty-join-props true, empty-root-join-props false} 
+               (not-empty (group-by keyword? (clojure.set/difference join-props joins-w-data)))]
+      (ex-info (str (some->> empty-join-props (empty-props-warning (comp/ident component-instance props)))
+                    (some->> empty-root-join-props (empty-props-warning (comp/ident component-instance props))) ) 
                {:level :warn
                 :join-props-without-data empty-join-props
+                :root-join-props-without-data empty-root-join-props
                 ::id :empty-join-props}))))
 
 (defn check-ident 

@@ -29,8 +29,6 @@ Warn when there is no data for a child, perhaps because the data has failed to l
 
 ![demo missing join data](doc/demo-missing-join-data.jpg)
 
-**TODO**: Handle ident and link queries.
-
 Experimental configuration (subject to change):
 
 ```clojure
