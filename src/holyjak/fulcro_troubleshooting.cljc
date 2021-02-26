@@ -5,6 +5,23 @@
    [com.fulcrologic.fulcro.components :as comp] 
    [com.fulcrologic.fulcro.dom :as dom]))
 
+(def builtin-join-check-excludes 
+  "Do not check components of these classes for having their query included in their parent"
+  #{; The AutocompleteFieldRoot asks for all the data instead of including the field's query
+    :com.fulcrologic.rad.rendering.semantic-ui.autocomplete/AutocompleteField})
+
+(defn instance-of? 
+  "Is the given component instance of the given class, presented as a keyword?"
+  [component-instance class-kwd]
+  (some->
+   (comp/get-class component-instance)
+   comp/class->registry-key
+   (= class-kwd)))
+
+(defn skip-join-check? [component-instance]
+  (some (partial instance-of? component-instance)
+        builtin-join-check-excludes))
+
 (def ^:dynamic *config* 
   "EXPERIMENTAL - subject to change and removal
    
@@ -20,14 +37,27 @@
    #?(:clj  (Date.)
       :cljs (js/Date.))))
 
+(defn ident [component-instance]
+  (comp/ident component-instance (comp/props component-instance)))
+
+(defn floating-root-component? [component-instance]
+  (-> (comp/get-parent component-instance)
+      (comp/component-name)
+      (str/starts-with? "com.fulcrologic.fulcro.rendering.multiple-roots-renderer/")))
 
 (defn root-component? [component-instance]
-  (nil? (comp/get-parent component-instance)))
+  (or (nil? (comp/get-parent component-instance))
+      (floating-root-component? component-instance)))
 
 (defn ui-only-component? 
   "A UI-only component does not have any query and does not need ident"
   [component-instance]
   (nil? (comp/query component-instance)))
+
+
+(def ident-str (comp pr-str ident))
+
+;; ----
 
 (defn closest-ancestor-with-query
   "Return the closest ancestor that has a query (or nil)"
@@ -68,11 +98,13 @@
 (defn check-query-inclusion
   "Is this component's query (if any) included in the parent (or another closest ancestor with a query)?"
   [component-instance]
-  (when-let [ancestor (ancestor-failing-to-join-query-of component-instance)]
+  (when-let [ancestor (and (not (skip-join-check? component-instance)) 
+                           (ancestor-failing-to-join-query-of component-instance))]
     (ex-info
      (str "The query of " (comp/component-name component-instance)
           " should be joined into the one of its stateful ancestor " (comp/component-name ancestor)
-          ". Something like: "
+          " (" (ident-str ancestor)
+          "). Something like: "
           "`{:some-prop (comp/get-query " (comp/component-name component-instance) ")}`.")
      {::id       :disconnected-query
       :component (comp/get-class component-instance)
@@ -206,7 +238,7 @@
     (dom/div :.fulcro-troubleshooting-error ; FIXME Cannot place this eg inside table/tr ...
              {:style {:border "lime 2px solid"}}
              (dom/div
-              (dom/p "WARNING(s) for " (comp/component-name component-instance) ":")               
+              (dom/p "WARNING(s) for " (comp/component-name component-instance) " (" (ident-str component-instance) "):")
               (map-indexed #(dom/p {:key %1} (ex-message %2)) errors))
              (real-render))
     (real-render)))
