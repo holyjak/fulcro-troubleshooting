@@ -11,13 +11,23 @@
    Provide custom configuration for the checks. Supported options:
    
    - `:join-prop-filter` - `(fn [component-instance property-name])` that should return
-     truthy for any join prop that should be check for having non-nil data in the props."
+     truthy for any join prop that should be check for having non-nil data in the props.
+   - `:allow-nil-ident` - do not warn about missing idents in non-root components with a query"
   {})
 
 (defn now-ms []
   (inst-ms
    #?(:clj  (Date.)
       :cljs (js/Date.))))
+
+
+(defn root-component? [component-instance]
+  (nil? (comp/get-parent component-instance)))
+
+(defn ui-only-component? 
+  "A UI-only component does not have any query and does not need ident"
+  [component-instance]
+  (nil? (comp/query component-instance)))
 
 (defn closest-ancestor-with-query
   "Return the closest ancestor that has a query (or nil)"
@@ -46,10 +56,10 @@
   the query of the given component into its own but does not
   or nil if either joined correctly or has no query to join."
   [component-instance]
-  (let [ancestor       (and (comp/query component-instance)
-                            (comp/get-parent component-instance) ; it is not the root
-                            (closest-ancestor-with-query component-instance))
-        anc-query      (and ancestor (comp/query ancestor))]
+  (let [ancestor       (when (and (not (ui-only-component? component-instance))
+                                  (not (root-component? component-instance)))
+                         (closest-ancestor-with-query component-instance))
+        anc-query      (some-> ancestor comp/query)]
     (when-not (some->> anc-query (joined-in-query? component-instance))
       ancestor)))
 
@@ -129,25 +139,30 @@
         d      {:ident ident, ::id :bad-ident}
         msg-ident-should (str "The ident `" (pr-str ident) "` should ")]
     (cond
-      (nil? (comp/get-parent component-instance)) ; Root has no parent
-      (when-not (nil? ident) 
+      (root-component? component-instance)
+      (when-not (nil? ident)
         (ex-info (str msg-ident-should "be nil because a root components should have no ident") d))
-      
-      (not (vector? ident)) 
+
+      (and (nil? ident)
+           (or (ui-only-component? component-instance)
+               (:allow-nil-ident *config*)))
+      nil
+
+      (not (vector? ident))
       (ex-info (str msg-ident-should
-                    "be a vector. Examples: `[:component/id :MyList]`, `[:person/id 123]`") 
+                    "be a vector. Examples: `[:component/id :MyList]`, `[:person/id 123]`")
                d)
-      
+
       (not (= 2 (count ident)))
       (ex-info (str msg-ident-should "have length 2") d)
 
-      (and (nil? (second ident)) 
+      (and (nil? (second ident))
            (seq (comp/props component-instance)))
       (ex-info (str msg-ident-should "likely not have nil as the second element. Have you used Template Ident"
                     " instead of a lambda such as `(fn [] [:component/id :MyCompo])`? Or is the entity data"
-                    " missing the id property?! (Which should never happen; are your resolvers wrong?)") 
+                    " missing the id property?! (Which should never happen; are your resolvers wrong?)")
                d)
-      
+
       :else nil)))
 
 
@@ -188,10 +203,10 @@
    to get notified in the UI when you did something wrong."
   [component-instance real-render]
   (if-let [errors (run-checks component-instance)]
-    (dom/div :.fulcro-troubleshooting-error
+    (dom/div :.fulcro-troubleshooting-error ; FIXME Cannot place this eg inside table/tr ...
              {:style {:border "lime 2px solid"}}
              (dom/div
               (dom/p "WARNING(s) for " (comp/component-name component-instance) ":")               
-              (map #(dom/p (ex-message %)) errors))
+              (map-indexed #(dom/p {:key %1} (ex-message %2)) errors))
              (real-render))
     (real-render)))
