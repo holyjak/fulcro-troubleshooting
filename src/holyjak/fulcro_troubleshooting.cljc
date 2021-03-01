@@ -57,6 +57,22 @@
 
 (def ident-str (comp pr-str ident))
 
+;; ---
+
+(defn rad-picker-attribute? 
+  "If the given prop is backed by a RAD Picker then it is likely not a problem if the client DB
+   lacks data for it because they are loaded on demand."
+  [component-instance prop]
+  ;; The user is likely to see this warning from the rad.picker-options in the console:
+  ;; (log/warn "No options cache found in props for" (comp/component-name cls) ". This could mean options have not been "
+  ;;        "loaded, or that you forgot to put `[::picker-options/options-cache '_]` on your query. NOTE: This warning can be "
+  ;;        "a false alarm if the application just started and no picker options have yet been loaded.")
+  (boolean (-> component-instance 
+               comp/component-options 
+               :com.fulcrologic.rad.form/field-options 
+               prop 
+               :com.fulcrologic.rad.picker-options/query-key)))
+
 ;; ----
 
 (defn closest-ancestor-with-query
@@ -137,16 +153,17 @@
         ident (comp/ident component-instance (comp/props component-instance))
         user-filter (or (:join-prop-filter *config*) (constantly true))
         
-        join-props
+        relevant-join-props
         (->> (comp/query component-instance)
              (filter query-elm->component)
              (map ffirst)
              (remove (partial non-current-router-target-join? ident))
+             (remove (partial rad-picker-attribute? component-instance))
              (filter (partial user-filter component-instance))
              set)
         
         joins-w-data
-        (->> (select-keys props join-props)
+        (->> (select-keys props relevant-join-props)
              (filter (fn [[_ val]] (some? val)))
              (map first)
              set)]
@@ -156,7 +173,7 @@
     ;;   #_(js/console.log "check-missing-child-prop for Root:" {:join-props join-props, :joins-w-data joins-w-data}))
     
     (when-let [{empty-join-props true, empty-root-join-props false} 
-               (not-empty (group-by keyword? (clojure.set/difference join-props joins-w-data)))]
+               (not-empty (group-by keyword? (clojure.set/difference relevant-join-props joins-w-data)))]
       (ex-info (str (some->> empty-join-props (empty-props-warning (comp/ident component-instance props)))
                     (some->> empty-root-join-props (empty-props-warning (comp/ident component-instance props))) ) 
                {:level :warn
