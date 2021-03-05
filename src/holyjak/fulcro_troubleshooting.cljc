@@ -76,15 +76,18 @@
 ;; ----
 
 (defn closest-ancestor-with-query
-  "Return the closest ancestor that has a query (or nil)"
+  "Return the closest ancestor that has a query (or the Root)"
   [component-instance]
   {:pre [(comp/component-instance? component-instance)]}
-  (->> (iterate #(some-> % comp/get-parent) component-instance)
-       (sequence (comp
-                   (drop 1)
-                   (filter comp/query)
-                   (take 1)))
-       first))
+  (let [ancestors (->> (rest (iterate #(some-> % comp/get-parent) component-instance))
+                       (take-while some?))]
+    (or
+     (->> ancestors
+          (sequence (comp
+                     (filter comp/query)
+                     (take 1)))
+          first)
+     (last ancestors))))
 
 (defn query-elm->component [query-element]
   (when (map? query-element)
@@ -114,11 +117,12 @@
 (defn check-query-inclusion
   "Is this component's query (if any) included in the parent (or another closest ancestor with a query)?"
   [component-instance]
+  ;; FIXME Also error if no ancestor found (e.g. if the Root does not have a query)!
   (when-let [ancestor (and (not (skip-join-check? component-instance)) 
                            (ancestor-failing-to-join-query-of component-instance))]
     (ex-info
      (str "The query of " (comp/component-name component-instance)
-          " should be joined into the one of its stateful ancestor " (comp/component-name ancestor)
+          " should be joined into the query of its stateful ancestor " (comp/component-name ancestor)
           " (" (ident-str ancestor)
           "). Something like: "
           "`{:some-prop (comp/get-query " (comp/component-name component-instance) ")}`.")
