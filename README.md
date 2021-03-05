@@ -53,7 +53,7 @@ Add the library to your project:
 {:dev {:extra-deps {holyjak/fulcro-troubleshooting
                     {:git/url "https://github.com/holyjak/fulcro-troubleshooting"
                      ;; run `clojure -X:deps git-resolve-tags` to insert the correct :sha
-                     :sha "aeb0336fcf266bbfe4f15a6ccf118008de191399"
+                     :sha "c730390a3551f3cc4a390befc37fb5ff9dfc0427"
                      :tag "latest"}}}
 ```
 
