@@ -3,7 +3,34 @@
    [clojure.set]
    [clojure.string :as str]
    [com.fulcrologic.fulcro.components :as comp] 
-   [com.fulcrologic.fulcro.dom :as dom]))
+   [com.fulcrologic.fulcro.dom :as dom]
+   [com.fulcrologic.fulcro.react.error-boundaries :as fulcro.eb :refer [error-boundary]]
+   #_[edn-query-language.core :as eql]))
+
+(def ns--multiple-roots-renderer "com.fulcrologic.fulcro.rendering.multiple-roots-renderer")
+(def ns--error-boundaries "com.fulcrologic.fulcro.react.error-boundaries")
+
+(defn component-ns 
+  "Return the namespace of the given component, as a string"
+  [component-instance]
+  (some->
+   (comp/get-class component-instance)
+   comp/class->registry-key
+   namespace))
+
+(defn get-parent [component-instance]
+  (or (comp/get-parent component-instance)
+      ;; com.fulcrologic.fulcro.react.error-boundaries/ErrorBoundary does not have parent as normal components do
+      ;; but instead has the prop `:parent`
+      (some-> component-instance comp/props :parent)))
+
+(set! fulcro.eb/*render-error*
+      (fn [component-instance cause]
+        (str "There was an error rendering " 
+             (if (= ns--error-boundaries (component-ns component-instance)) ; always true?!
+               (some-> component-instance get-parent comp/component-name)
+               (comp/component-name component-instance))
+             ": " (ex-message cause))))
 
 (def builtin-join-check-excludes 
   "Do not check components of these classes for having their query included in their parent"
@@ -11,7 +38,9 @@
     :com.fulcrologic.rad.rendering.semantic-ui.autocomplete/AutocompleteField})
 
 (defn instance-of? 
-  "Is the given component instance of the given class, presented as a keyword?"
+  "Is the given component instance of the given class, presented as a keyword?
+   
+   Ex.: (instance-of? c :com.fulcrologic.rad.rendering.semantic-ui.autocomplete/AutocompleteField)"
   [component-instance class-kwd]
   (some->
    (comp/get-class component-instance)
@@ -41,12 +70,12 @@
   (comp/ident component-instance (comp/props component-instance)))
 
 (defn floating-root-component? [component-instance]
-  (-> (comp/get-parent component-instance)
-      (comp/component-name)
-      (str/starts-with? "com.fulcrologic.fulcro.rendering.multiple-roots-renderer/")))
+  (some-> (get-parent component-instance)
+          (component-ns)
+          (= ns--multiple-roots-renderer)))
 
 (defn root-component? [component-instance]
-  (or (nil? (comp/get-parent component-instance))
+  (or (nil? (get-parent component-instance))
       (floating-root-component? component-instance)))
 
 (defn ui-only-component? 
@@ -79,7 +108,7 @@
   "Return the closest ancestor that has a query (or the Root)"
   [component-instance]
   {:pre [(comp/component-instance? component-instance)]}
-  (let [ancestors (->> (rest (iterate #(some-> % comp/get-parent) component-instance))
+  (let [ancestors (->> (rest (iterate #(some-> % get-parent) component-instance))
                        (take-while some?))]
     (or
      (->> ancestors
@@ -218,8 +247,47 @@
 
       :else nil)))
 
+;; (defn check-root-query-valid [component-instance]
+;;   (when-let [root-query (and (root-component? component-instance)
+;;                              (comp/get-query component-instance))]
+;;     (try
+;;       (eql/query->ast root-query)
+;;       (catch #?(:cljs :default :clj Throwable) e
+;;         (ex-info "Some part of the combined query is not a valid EQL" {:query root-query} e)))))
+
+(defn query->props [query]
+  ;; Perhaps used edn/query->ast for 100% correct way rather than this quick and dirty check?
+  (map
+   #(if (map? %)
+      (ffirst %) ; just the key
+      %)
+   query))
+
+(defn check-initial-state [component-instance]
+  (when-let [st (and (comp/query component-instance)
+                     (comp/get-initial-state component-instance))]
+    (cond
+      (not (map? st))
+      (ex-info (str "Initial state must be nil or a map, is `" (pr-str st) ; type does not work for [] here
+                    "` (it is the props your component gets passed on its 1st render)")
+               {:initial-state st})
+      
+      (seq (clojure.set/difference
+            (set (keys st))
+            (set (query->props (comp/query component-instance)))))
+      (ex-info (str "Initial state should only contain keys for the props the component queries for."
+                    " Has these: "
+                    (str/join ", " (keys st)) ".")
+               {:initial-state-keys (keys st)
+                :query (comp/query component-instance)})
+      
+      :else
+      nil)))
 
 ;; ----------------- running + caching checks
+
+(defn log [& args]
+  #?(:cljs (apply js/console.debug "fulcro-troubleshooting:" args)))
 
 (def cached-errors (atom nil))
 
@@ -232,34 +300,50 @@
   (let [[ts errors] (get @cached-errors component-instance)]
     (if (and errors (>= ts (- (now-ms) 10)))
       errors
-      (if-let [errors (checks-fn)]
-        (do (swap! cached-errors assoc component-instance [(now-ms) errors]) 
-            errors)
-        (do (swap! cached-errors dissoc component-instance) 
+      (if-let [new-errors (checks-fn)]
+        (do (swap! cached-errors assoc component-instance [(now-ms) new-errors]) 
+            new-errors)
+        (do (when errors (swap! cached-errors dissoc component-instance)) 
             nil)))))
 
 (defn run-checks [component-instance]
   (debounce
    component-instance
-   #(->> ((juxt
-           check-ident
-           check-missing-child-prop
-           check-query-inclusion)
-          component-instance)
-         (remove nil?)
-         seq)))
+   #(do (log "Checking" (comp/component-name component-instance))
+        (->> ((juxt
+               check-ident
+               check-missing-child-prop
+               check-query-inclusion
+               check-initial-state)
+              component-instance)
+             (remove nil?)
+             seq))))
 
 ;; ----------------- public functions
 
-(defn troubleshooting-render-middleware 
+(defn error-boundary? [component-instance]
+  (= (component-ns component-instance)
+     ns--error-boundaries))
+
+(defn wrap-with-error-boundary? [component-instance]
+  (not (or (error-boundary? component-instance)
+           (-> (component-ns component-instance)
+               ;; For efficiency, do not wrap Fulcro's own components (...fulcro.*, ...rad.*)
+               ;; though not sure whether / how much it matters               
+               (str/starts-with? "com.fulcrologic.")))))
+
+(defn troubleshooting-render-middleware
   "Add this middleware to your fulcro app (as `(app/fulcro-app {:render-middleware ...})`)
    to get notified in the UI when you did something wrong."
   [component-instance real-render]
-  (if-let [errors (run-checks component-instance)]
-    (dom/div :.fulcro-troubleshooting-error ; FIXME Cannot place this eg inside table/tr ...
-             {:style {:border "lime 2px solid"}}
-             (dom/div
-              (dom/p "WARNING(s) for " (comp/component-name component-instance) " (" (ident-str component-instance) "):")
-              (map-indexed #(dom/p {:key %1} (ex-message %2)) errors))
-             (real-render))
+  (if (wrap-with-error-boundary? component-instance)
+    (error-boundary
+     (if-let [errors (run-checks component-instance)]
+       (dom/div :.fulcro-troubleshooting-error ; FIXME Cannot place this eg inside table/tr ...
+                {:style {:border "lime 2px solid"}}
+                (dom/div
+                 (dom/p "WARNING(s) for " (comp/component-name component-instance) " (" (ident-str component-instance) "):")
+                 (map-indexed #(dom/p {:key %1} (ex-message %2)) errors))
+                (real-render))
+       (real-render)))
     (real-render)))

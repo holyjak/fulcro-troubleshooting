@@ -37,11 +37,22 @@ Experimental configuration (subject to change):
       {:join-prop-filter (fn [_ prop] (not= prop :jh/address))})
 ```
 
+### Valid :initial-state
+
+Ideally, you would use the [template form](https://book.fulcrologic.com/#_template_mode) of `:initial-state` as it checks that you only include props that you query for.
+
+This check controls that you actually return either nil or a map and that the map has no key
+you do not query for (contrary to the template form check, this works also for the lambda form,
+though it is less powerful).
+
+### User components wrapped with [React Error Boundary](https://book.fulcrologic.com/#_react_errors)
+
+Non-Fulcro components are wrapped with an Error Boundary so that if their render throws an exception, it is caught and displayed in the UI, instead of taking the whole page down.
 ## Status
 
-This is very alpha, under active development. However it is already useful. So do not hesitate to try it out!
+Alpha quality but already pretty useful library, under active development. Do not hesitate to try it out and share your feedback!
 
-Get in touch with `@holyjak` in the `#fulcro` channel of the Clojurians Slack if you have any questions or comments.
+Get in touch with `@holyjak` in the `#fulcro` channel of the Clojurians Slack if you have any questions, problems, ideas, or comments.
 
 ## Usage
 
@@ -81,6 +92,12 @@ When you create your Fulcro/RAD app, add the middleware provided by the library:
 ;; we use js/.. instead of holyjak.fulcro-troubleshooting/troubleshooting-render-middleware so that
 ;; the code will still compile for prod release, when the lib is not included
 ```
+
+## TODO
+
+- check initial state (if present) to be a map with keys <= query keys
+- add Error Boundary
+- add tests
 
 ## License
 
