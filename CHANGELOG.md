@@ -3,6 +3,8 @@
 ## [Unreleased]
 ### Changed
 
+- Add `:query-inclusion-filter` config
+
 ## [v5] - 2021-03-06
 ### Added
 - Wrap user's own components with React Error Boundary

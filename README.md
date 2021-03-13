@@ -16,6 +16,14 @@ Warn you when a component's query is not included in its parent's:
 
 ![demo missing join](doc/demo-missing-join.jpg)
 
+Experimental configuration (subject to change):
+
+```clojure
+(set! holyjak.fulcro-troubleshooting/*config*
+      ;; return truthy to check the inclusing of the component's query in an ancestor
+      {:query-inclusion-filter (fn [component-instance comp-class] 
+                                 (not= comp-class :com.example.ui/MyComponent))})
+``
 ### Valid idents
 
 Warn when there is something fishy about the component's ident:
@@ -34,8 +42,10 @@ Experimental configuration (subject to change):
 ```clojure
 (set! holyjak.fulcro-troubleshooting/*config*
       ;; return truthy for any join prop that should be check for having non-nil data in the props:
-      {:join-prop-filter (fn [_ prop] (not= prop :jh/address))})
+      {:join-prop-filter (fn [component-instance prop] (not= prop :jh/address))})
 ```
+
+You can also get rid of this warning by using `:initial-state` and setting it to something non-nil such as `[]` for a list or `{}` for a map. (Though remember that in the Template Form `{}` means "include initial state from the child" so, if there is a child element for that prop, set also its initial state. And remember to propagate the initial state up all the way to the root component.)
 
 ### Valid :initial-state
 

@@ -47,10 +47,6 @@
    comp/class->registry-key
    (= class-kwd)))
 
-(defn skip-join-check? [component-instance]
-  (some (partial instance-of? component-instance)
-        builtin-join-check-excludes))
-
 (def ^:dynamic *config* 
   "EXPERIMENTAL - subject to change and removal
    
@@ -60,6 +56,15 @@
      truthy for any join prop that should be check for having non-nil data in the props.
    - `:allow-nil-ident` - do not warn about missing idents in non-root components with a query"
   {})
+
+(defn skip-join-check? [component-instance]
+  (let [user-filter (or (:query-inclusion-filter *config*) (constantly true))]
+    (or (some (partial instance-of? component-instance)
+              builtin-join-check-excludes)
+        (not (user-filter component-instance
+                          (some->
+                           (comp/get-class component-instance)
+                           comp/class->registry-key))))))
 
 (defn now-ms []
   (inst-ms
@@ -151,7 +156,7 @@
                            (ancestor-failing-to-join-query-of component-instance))]
     (ex-info
      (str "The query of " (comp/component-name component-instance)
-          " should be joined into the query of its stateful ancestor " (comp/component-name ancestor)
+          " should be joined into the query of its closest stateful ancestor " (comp/component-name ancestor)
           " (" (ident-str ancestor)
           "). Something like: "
           "`{:some-prop (comp/get-query " (comp/component-name component-instance) ")}`.")
