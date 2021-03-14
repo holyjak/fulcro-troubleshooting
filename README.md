@@ -23,7 +23,7 @@ Experimental configuration (subject to change):
       ;; return truthy to check the inclusing of the component's query in an ancestor
       {:query-inclusion-filter (fn [component-instance comp-class] 
                                  (not= comp-class :com.example.ui/MyComponent))})
-``
+```
 ### Valid idents
 
 Warn when there is something fishy about the component's ident:
