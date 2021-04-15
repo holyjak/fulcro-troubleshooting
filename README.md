@@ -23,6 +23,7 @@ Experimental configuration (subject to change):
       ;; return truthy to check the inclusing of the component's query in an ancestor
       {:query-inclusion-filter (fn [component-instance comp-class] 
                                  (not= comp-class :com.example.ui/MyComponent))})
+;; OR: (when goog.DEBUG (set! js/holyjak.fulcro_troubleshooting._STAR_config_STAR_ {..}))
 ```
 ### Valid idents
 
@@ -43,6 +44,7 @@ Experimental configuration (subject to change):
 (set! holyjak.fulcro-troubleshooting/*config*
       ;; return truthy for any join prop that should be check for having non-nil data in the props:
       {:join-prop-filter (fn [component-instance prop] (not= prop :jh/address))})
+;; OR: (when goog.DEBUG (set! js/holyjak.fulcro_troubleshooting._STAR_config_STAR_ {..}))
 ```
 
 You can also get rid of this warning by using `:initial-state` and setting it to something non-nil such as `[]` for a list or `{}` for a map. (Though remember that in the Template Form `{}` means "include initial state from the child" so, if there is a child element for that prop, set also its initial state. And remember to propagate the initial state up all the way to the root component.)
@@ -106,8 +108,6 @@ When you create your Fulcro/RAD app, add the middleware provided by the library:
 ## TODO
 
 - check initial state (if present) to be a map with keys <= query keys
-- add Error Boundary
-- add tests
 
 ## License
 
