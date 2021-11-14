@@ -54,8 +54,11 @@
    
    - `:join-prop-filter` - `(fn [component-instance property-name])` that should return
      truthy for any join prop that should be check for having non-nil data in the props.
-   - `:allow-nil-ident` - do not warn about missing idents in non-root components with a query"
+   - `:allow-nil-ident` - do not warn about missing idents in non-root components with a query
+  - `:error-boundaries?` - set to `false` to disable wrapping components in React Error Boundary"
   {})
+
+(defn- add-error-boundaries? [] (:error-boundaries? *config* true))
 
 (defn skip-join-check? [component-instance]
   (let [user-filter (or (:query-inclusion-filter *config*) (constantly true))]
@@ -326,29 +329,39 @@
 
 ;; ----------------- public functions
 
-(defn error-boundary? [component-instance]
+(defn is-error-boundary? [component-instance]
   (= (component-ns component-instance)
      ns--error-boundaries))
 
-(defn wrap-with-error-boundary? [component-instance]
-  (not (or (error-boundary? component-instance)
-           (-> (component-ns component-instance)
+(defn ignore? [component-instance]
+  (or
+    (is-error-boundary? component-instance)
+    (-> (component-ns component-instance)
                ;; For efficiency, do not wrap Fulcro's own components (...fulcro.*, ...rad.*)
                ;; though not sure whether / how much it matters               
-               (str/starts-with? "com.fulcrologic.")))))
+        (str/starts-with? "com.fulcrologic."))))
+
+(defn maybe-wrap-with-errors [component-instance real-render]
+  (if-let [errors (run-checks component-instance)]
+    (dom/div :.fulcro-troubleshooting-error ; FIXME Cannot place this eg inside table/tr ...
+      {:style {:border "lime 2px solid"}}
+      (dom/div
+        (dom/p "WARNING(s) for " (comp/component-name component-instance) " (" (ident-str component-instance) "):")
+        (map-indexed #(dom/p {:key %1} (ex-message %2)) errors))
+      (real-render))
+    (real-render)))
 
 (defn troubleshooting-render-middleware
   "Add this middleware to your fulcro app (as `(app/fulcro-app {:render-middleware ...})`)
    to get notified in the UI when you did something wrong."
   [component-instance real-render]
-  (if (wrap-with-error-boundary? component-instance)
-    (error-boundary
-     (if-let [errors (run-checks component-instance)]
-       (dom/div :.fulcro-troubleshooting-error ; FIXME Cannot place this eg inside table/tr ...
-                {:style {:border "lime 2px solid"}}
-                (dom/div
-                 (dom/p "WARNING(s) for " (comp/component-name component-instance) " (" (ident-str component-instance) "):")
-                 (map-indexed #(dom/p {:key %1} (ex-message %2)) errors))
-                (real-render))
-       (real-render)))
-    (real-render)))
+  (cond
+    (ignore? component-instance)
+    (real-render)
+
+    (not (add-error-boundaries?))
+    (maybe-wrap-with-errors component-instance real-render)
+
+    :else
+    (error-boundary ; FIXME: Breaks F.Inspect's Element picker, see #6
+      (maybe-wrap-with-errors component-instance real-render))))

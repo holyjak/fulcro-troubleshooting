@@ -68,7 +68,9 @@ Get in touch with `@holyjak` in the `#fulcro` channel of the Clojurians Slack if
 
 ## Usage
 
-Add the library to your project:
+You need to do three things:
+
+(1) Add the library to your project:
 
 ```clojure
 ;; deps.edn
@@ -80,18 +82,17 @@ Add the library to your project:
                      :tag "latest"}}}
 ```
 
-and make sure that the `:dev` alias is activated and the library's names is automatically required:
+(2) Make sure that the `:dev` alias is activated and the library's namespace is automatically required:
 
 ```clojure
 ;; shadow-cljs.edn
-{:deps {:aliases [:dev]}
- :builds {:main {:devtools {:preloads [holyjak.fulcro-troubleshooting ...] ...}
+{:deps {:aliases [:dev]} ; <-- this
+ :builds {:main {:devtools {:preloads [holyjak.fulcro-troubleshooting ...] ...} ; <-- and this
                  ...}}}
 ```
 
-(Assuming you have activated the `dev` alias in your `shadow-cljs.edn`.)
 
-When you create your Fulcro/RAD app, add the middleware provided by the library:
+(3) When you create your Fulcro/RAD app, add the middleware provided by the library:
 
 ```clojure
 (ns my.app
@@ -105,12 +106,22 @@ When you create your Fulcro/RAD app, add the middleware provided by the library:
 ;; the code will still compile for prod release, when the lib is not included
 ```
 
+### Beware: How to un-break Fulcro Inspect's Element tab/picker
+
+Until #6 is fixed, you need to set the following config to disable injecting React error boundaries around components:
+
+
+```clojure
+(set! holyjak.fulcro-troubleshooting/*config* {:error-boundaries? false})
+;; OR: (when goog.DEBUG (set! js/holyjak.fulcro_troubleshooting._STAR_config_STAR_ {..}))
+```
+
 ## TODO
 
 - check initial state (if present) to be a map with keys <= query keys
 
 ## License
 
-Copyleft 2021 Holyjak
+Copyleft 2021 Jakub Holý
 
 Distributed under the Unlicense, see http://unlicense.org/.
