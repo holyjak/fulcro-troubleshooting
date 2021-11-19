@@ -4,7 +4,7 @@ A development-time library for [Fulcro](https://fulcro.fulcrologic.com/) that he
 
 For additional help, see the [Fulcro Troubleshooting Decision Tree](https://blog.jakubholy.net/2020/troubleshooting-fulcro/).
 
-## Rationaly
+## Rationale
 
 Fulcro does an awesome job of checking your code and providing helpful messages but it is inherently limited by the fact that most of its checks are compile-time. `fulcro-troubleshooting` checks your application at run time and thus has much more insight into what is really going on. It also integrates with the UI so that you see the errors and warnings right in the UI, next to the place where you observe the problem.
 
