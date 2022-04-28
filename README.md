@@ -78,8 +78,8 @@ You need to do three things:
 {:dev {:extra-deps {holyjak/fulcro-troubleshooting
                     {:git/url "https://github.com/holyjak/fulcro-troubleshooting"
                      ;; run `clojure -X:deps git-resolve-tags` to insert the correct :sha
-                     :sha "177afe5a3c043777f944cb28b73332d6136796ae"
-                     :tag "latest"}}}
+                     :sha "129bef80c04eae0824f464ce1f782ac27aded42e" ; :tag "latest"
+                     }}}
 ```
 
 (2) Make sure that the `:dev` alias is activated and the library's namespace is automatically required:
