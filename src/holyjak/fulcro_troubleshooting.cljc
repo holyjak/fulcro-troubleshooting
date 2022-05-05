@@ -104,11 +104,11 @@
   ;; (log/warn "No options cache found in props for" (comp/component-name cls) ". This could mean options have not been "
   ;;        "loaded, or that you forgot to put `[::picker-options/options-cache '_]` on your query. NOTE: This warning can be "
   ;;        "a false alarm if the application just started and no picker options have yet been loaded.")
-  (boolean (-> component-instance 
-               comp/component-options 
-               :com.fulcrologic.rad.form/field-options 
-               prop 
-               :com.fulcrologic.rad.picker-options/query-key)))
+  (boolean (some-> component-instance 
+                   comp/component-options 
+                   :com.fulcrologic.rad.form/field-options 
+                   prop 
+                   :com.fulcrologic.rad.picker-options/query-key)))
 
 ;; ----
 
