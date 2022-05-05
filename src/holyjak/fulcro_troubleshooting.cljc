@@ -52,20 +52,32 @@
    
    Provide custom configuration for the checks. Supported options:
    
+   - `:initial-state-filter` - `(fn [component-instance property-name])` that should return
+     truthy for any initial-state prop that should be check for being also queried for.
    - `:join-prop-filter` - `(fn [component-instance property-name])` that should return
      truthy for any join prop that should be check for having non-nil data in the props.
    - `:allow-nil-ident` - do not warn about missing idents in non-root components with a query
   - `:error-boundaries?` - set to `false` to disable wrapping components in React Error Boundary"
   {})
 
+(defn- ensure! [v pred msg]
+  (assert (pred v) msg)
+  v)
+
+(defn- get-config-filter [config-prop-name component-instance]
+  (if-let [user-filter (get *config* config-prop-name)]
+    (partial 
+      (ensure! user-filter ifn? (str "The value of the config option " config-prop-name " must be a function"))
+      component-instance)
+    (constantly true)))
+
 (defn- add-error-boundaries? [] (:error-boundaries? *config* true))
 
 (defn skip-join-check? [component-instance]
-  (let [user-filter (or (:query-inclusion-filter *config*) (constantly true))]
+  (let [user-filter (get-config-filter :query-inclusion-filter component-instance)]
     (or (some (partial instance-of? component-instance)
               builtin-join-check-excludes)
-        (not (user-filter component-instance
-                          (some->
+        (not (user-filter (some->
                            (comp/get-class component-instance)
                            comp/class->registry-key))))))
 
@@ -192,17 +204,17 @@
   [component-instance]
   (let [props (comp/props component-instance)
         ident (comp/ident component-instance (comp/props component-instance))
-        user-filter (or (:join-prop-filter *config*) (constantly true))
-        
+        user-filter (get-config-filter :join-prop-filter component-instance)
+
         relevant-join-props
         (->> (comp/query component-instance)
              (filter query-elm->component)
              (map ffirst)
              (remove (partial non-current-router-target-join? ident))
              (remove (partial rad-picker-attribute? component-instance))
-             (filter (partial user-filter component-instance))
+             (filter user-filter)
              set)
-        
+
         joins-w-data
         (->> (select-keys props relevant-join-props)
              (filter (fn [[_ val]] (some? val)))
@@ -281,7 +293,7 @@
                {:initial-state st})
       
       (seq (clojure.set/difference
-            (set (keys st))
+            (set (->> (keys st) (filter (get-config-filter :initial-state-filter component-instance))))
             (set (query->props (comp/query component-instance)))))
       (ex-info (str "Initial state should only contain keys for the props the component queries for."
                     " Has these: "

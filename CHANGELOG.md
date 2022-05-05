@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Changed
 
+- Add `:initial-state-filter` config
 - Add `:query-inclusion-filter` config
 
 ## [v5] - 2021-03-06

@@ -42,7 +42,7 @@ Experimental configuration (subject to change):
 
 ```clojure
 (set! holyjak.fulcro-troubleshooting/*config*
-      ;; return truthy for any join prop that should be check for having non-nil data in the props:
+      ;; return truthy for any join prop that should be checked for having non-nil data in the props:
       {:join-prop-filter (fn [component-instance prop] (not= prop :jh/address))})
 ;; OR: (when goog.DEBUG (set! js/holyjak.fulcro_troubleshooting._STAR_config_STAR_ {..}))
 ```
@@ -56,6 +56,15 @@ Ideally, you would use the [template form](https://book.fulcrologic.com/#_templa
 This check controls that you actually return either nil or a map and that the map has no key
 you do not query for (contrary to the template form check, this works also for the lambda form,
 though it is less powerful).
+
+Experimental configuration (subject to change):
+
+```clojure
+(set! holyjak.fulcro-troubleshooting/*config*
+      ;; return truthy for any initial state key that should be checked for having being in the query:
+      {:initial-state-filter (fn [component-instance prop] (not= prop :jh/address))})
+;; OR: (when goog.DEBUG (set! js/holyjak.fulcro_troubleshooting._STAR_config_STAR_ {..}))
+```
 
 ### User components wrapped with [React Error Boundary](https://book.fulcrologic.com/#_react_errors)
 
