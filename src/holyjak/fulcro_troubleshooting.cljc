@@ -183,8 +183,14 @@
   (and (= ident-id :com.fulcrologic.fulcro.routing.dynamic-routing/id)
        (str/starts-with? (name prop) "alt")))
 
+(defn- link-or-ident-query? [query-prop] 
+  (and (vector? query-prop) (= 2 (count query-prop))))
+
+(defn- link-query? [query-prop]
+  (and (link-or-ident-query? query-prop) (= '_ (second query-prop))))
+
 (defn empty-props-warning [ident props]
-  (let [link-or-ident-query? (vector? (first props))]
+  (let [link-or-ident-query? (link-or-ident-query? (first props))]
     (str "These "
          (when link-or-ident-query? "ident/link query")
          " join props " (str/join ", " props)
@@ -212,6 +218,9 @@
              (map ffirst)
              (remove (partial non-current-router-target-join? ident))
              (remove (partial rad-picker-attribute? component-instance))
+             (map #(cond-> %
+                     ;; link query such as [:root-prop '_] will get data under `:root-prop`
+                     (link-query? %) (first)))
              (filter user-filter)
              set)
 
@@ -294,7 +303,9 @@
       
       (seq (clojure.set/difference
             (set (->> (keys st) (filter (get-config-filter :initial-state-filter component-instance))))
-            (set (query->props (comp/query component-instance)))))
+            (set (->> (query->props (comp/query component-instance))
+                      (map #(cond-> %
+                              (link-or-ident-query? %) (first)))))))
       (ex-info (str "Initial state should only contain keys for the props the component queries for."
                     " Has these: "
                     (str/join ", " (keys st)) ".")
@@ -355,7 +366,7 @@
 
 (defn maybe-wrap-with-errors [component-instance real-render]
   (if-let [errors (run-checks component-instance)]
-    (dom/div :.fulcro-troubleshooting-error ; FIXME Cannot place this eg inside table/tr ...
+    (dom/div :.fulcro-troubleshooting-error ; FIXME Cannot place this eg inside table/tr ... - could get mount root and prepend a child to it?
       {:style {:border "lime 2px solid"}}
       (dom/div
         (dom/p "WARNING(s) for " (comp/component-name component-instance) " (" (ident-str component-instance) "):")
