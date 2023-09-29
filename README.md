@@ -115,16 +115,6 @@ You need to do three things:
 ;; the code will still compile for prod release, when the lib is not included
 ```
 
-### Beware: How to un-break Fulcro Inspect's Element tab/picker
-
-Until #6 is fixed, you need to set the following config to disable injecting React error boundaries around components:
-
-
-```clojure
-(set! holyjak.fulcro-troubleshooting/*config* {:error-boundaries? false})
-;; OR: (when goog.DEBUG (set! js/holyjak.fulcro_troubleshooting._STAR_config_STAR_ {..}))
-```
-
 ## TODO
 
 - check initial state (if present) to be a map with keys <= query keys

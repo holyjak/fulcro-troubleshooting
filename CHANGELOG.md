@@ -4,6 +4,13 @@
 ### Changed
 ### Added
 
+## [v7] - 2023-09-29
+### Added
+
+* Error messages now contain the corresponding header from the Readme
+### Added
+
+* The border around a component with warnings is orange instead of green
 ## [v6] - 2022-05-05
 
 ### Added
