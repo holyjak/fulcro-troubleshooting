@@ -87,7 +87,7 @@ You need to do three things:
 {:dev {:extra-deps {holyjak/fulcro-troubleshooting
                     {:git/url "https://github.com/holyjak/fulcro-troubleshooting"
                      ;; BEWARE: run `clojure -X:deps git-resolve-tags` to insert the correct :sha
-                     :sha "50b979f1c72f4c462261b4adf4d3cfb7af7b1a19" :tag "latest"
+                     :sha "494c1a4bf55fd752e26fe5122626b14c76b59247" :tag "latest"
                      }}}
 ```
 
