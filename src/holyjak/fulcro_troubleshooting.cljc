@@ -83,7 +83,7 @@
 
 (defn now-ms []
   (inst-ms
-   #?(:clj  (Date.)
+   #?(:clj  (java.util.Date.)
       :cljs (js/Date.))))
 
 (defn ident [component-instance]
@@ -170,7 +170,7 @@
   (when-let [ancestor (and (not (skip-join-check? component-instance)) 
                            (ancestor-failing-to-join-query-of component-instance))]
     (ex-info
-     (str "The query of " (comp/component-name component-instance)
+     (str "*Proper query inclusion*: The query of " (comp/component-name component-instance)
           " should be joined into the query of its closest stateful ancestor " (comp/component-name ancestor)
           " (" (ident-str ancestor)
           "). Something like: "
@@ -191,7 +191,7 @@
 
 (defn empty-props-warning [ident props]
   (let [link-or-ident-query? (link-or-ident-query? (first props))]
-    (str "These "
+    (str "*Presence of child data*: These "
          (when link-or-ident-query? "ident/link query")
          " join props " (str/join ", " props)
          " have no data in the client DB (expected them " 
@@ -248,7 +248,7 @@
   [component-instance]
   (let [ident (comp/ident component-instance (comp/props component-instance))
         d      {:ident ident, ::id :bad-ident}
-        msg-ident-should (str "The ident `" (pr-str ident) "` should ")]
+        msg-ident-should (str "*Valid idents*: The ident `" (pr-str ident) "` should ")]
     (cond
       (root-component? component-instance)
       (when-not (nil? ident)
@@ -297,7 +297,7 @@
                      (comp/get-initial-state component-instance))]
     (cond
       (not (map? st))
-      (ex-info (str "Initial state must be nil or a map, is `" (pr-str st) ; type does not work for [] here
+      (ex-info (str "*Valid :initial-state*: Initial state must be nil or a map, is `" (pr-str st) ; type does not work for [] here
                     "` (it is the props your component gets passed on its 1st render)")
                {:initial-state st})
       
@@ -306,8 +306,8 @@
             (set (->> (query->props (comp/query component-instance))
                       (map #(cond-> %
                               (link-or-ident-query? %) (first)))))))
-      (ex-info (str "Initial state should only contain keys for the props the component queries for."
-                    " Has these: "
+      (ex-info (str "*Valid :initial-state*: Initial state should only contain keys"
+                    " for the props the component queries for. Has these: "
                     (str/join ", " (keys st)) ".")
                {:initial-state-keys (keys st)
                 :query (comp/query component-instance)})
@@ -367,7 +367,7 @@
 (defn maybe-wrap-with-errors [component-instance real-render]
   (if-let [errors (run-checks component-instance)]
     (dom/div :.fulcro-troubleshooting-error ; FIXME Cannot place this eg inside table/tr ... - could get mount root and prepend a child to it?
-      {:style {:border "lime 2px solid"}}
+      {:style {:border "orange 2px solid"}}
       (dom/div
         (dom/p "WARNING(s) for " (comp/component-name component-instance) " (" (ident-str component-instance) "):")
         (map-indexed #(dom/p {:key %1} (ex-message %2)) errors))
