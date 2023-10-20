@@ -53,9 +53,28 @@ You can also get rid of this warning by using `:initial-state` and setting it to
 
 Ideally, you would use the [template form](https://book.fulcrologic.com/#_template_mode) of `:initial-state` as it checks that you only include props that you query for.
 
-This check controls that you actually return either nil or a map and that the map has no key
+This check controls that (a) you actually return either nil or a map and (b) that the map has no key
 you do not query for (contrary to the template form check, this works also for the lambda form,
 though it is less powerful).
+
+For example, given the following component:
+
+```clojure
+(defsc Character [_ _]
+  {:query [:character/fname :character/surname :character/age]
+   :ident :character/id
+   :initial-state (fn [p] {:character/id (:id p)
+                           :character/fname "Jon"
+                           :ui/alive? true
+                           :character/surname "Snow"
+                           :character/sex :m
+                           :character/age 18})}
+  ...))
+```
+
+we'd get a warning like this one:
+
+![demo lambda initial state extras](doc/demo-init-state-extras.png)
 
 Experimental configuration (subject to change):
 

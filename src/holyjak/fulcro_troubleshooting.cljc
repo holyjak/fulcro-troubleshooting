@@ -295,24 +295,24 @@
 (defn check-initial-state [component-instance]
   (when-let [st (and (comp/query component-instance)
                      (comp/get-initial-state component-instance))]
-    (cond
-      (not (map? st))
-      (ex-info (str "*Valid :initial-state*: Initial state must be nil or a map, is `" (pr-str st) ; type does not work for [] here
-                    "` (it is the props your component gets passed on its 1st render)")
-               {:initial-state st})
+    (or
+      (and (not (map? st))
+           (ex-info (str "*Valid :initial-state*: Initial state must be nil or a map, is `" (pr-str st) ; type does not work for [] here
+                         "` (it is the props your component gets passed on its 1st render)")
+                    {:initial-state st}))
       
-      (seq (clojure.set/difference
-            (set (->> (keys st) (filter (get-config-filter :initial-state-filter component-instance))))
-            (set (->> (query->props (comp/query component-instance))
-                      (map #(cond-> %
-                              (link-or-ident-query? %) (first)))))))
-      (ex-info (str "*Valid :initial-state*: Initial state should only contain keys"
-                    " for the props the component queries for. Has these: "
-                    (str/join ", " (keys st)) ".")
-               {:initial-state-keys (keys st)
-                :query (comp/query component-instance)})
+      (when-let [diff (seq (clojure.set/difference
+                            (set (->> (keys st) (filter (get-config-filter :initial-state-filter component-instance))))
+                            (set (->> (query->props (comp/query component-instance))
+                                      (map #(cond-> %
+                                              (link-or-ident-query? %) (first)))))))]
+        (ex-info (str "*Valid :initial-state*: Initial state should only contain keys"
+                      " for the props the component queries for. Has these extra: "
+                      (str/join ", " diff) ".")
+                 {:initial-state-keys (keys st)
+                  :query (comp/query component-instance)
+                  :extra-state-keys diff}))
       
-      :else
       nil)))
 
 (defn check-query-for-duplicates [component-instance]

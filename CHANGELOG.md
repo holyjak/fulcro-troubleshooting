@@ -4,6 +4,11 @@
 ### Changed
 ### Added
 
+## [v9] - 2023-10-20
+### Changed
+
+- The Check: 'Valid :initial-state' now only shows the extra props that shouldn't be there
+
 ## [v8] - 2023-10-20
 ### Added
 
