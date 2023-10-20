@@ -10,29 +10,29 @@ Fulcro does an awesome job of checking your code and providing helpful messages 
 
 ## What can it do?
 
-### Proper query inclusion
+### Check: Proper query inclusion
 
 Warn you when a component's query is not included in its parent's:
 
-![demo missing join](doc/demo-missing-join.jpg)
+![demo missing join](doc/demo-missing-join.png)
 
 Experimental configuration (subject to change):
 
 ```clojure
 (set! holyjak.fulcro-troubleshooting/*config*
-      ;; return truthy to check the inclusing of the component's query in an ancestor
+      ;; return truthy to check the inclusion of the component's query in an ancestor
       {:query-inclusion-filter (fn [component-instance comp-class] 
                                  (not= comp-class :com.example.ui/MyComponent))})
 ;; OR: (when goog.DEBUG (set! js/holyjak.fulcro_troubleshooting._STAR_config_STAR_ {..}))
 ```
-### Valid idents
+### Check: Valid idents
 
 Warn when there is something fishy about the component's ident:
 
 ![demo bad ident - map](doc/demo-bad-ident-map.jpg)
 ![demo bad ident - nil](doc/demo-bad-ident-nil.jpg)
 
-### Presence of child data
+### Check: Presence of child data
 
 Warn when there is no data for a child, perhaps because the data has failed to load, or is at the wrong place of the DB, or because you have not provided `:initial-state` for the component (which is optional but crucial e.g. for Link Query - only components):
 
@@ -49,7 +49,7 @@ Experimental configuration (subject to change):
 
 You can also get rid of this warning by using `:initial-state` and setting it to something non-nil such as `[]` for a list or `{}` for a map. (Though remember that in the Template Form `{}` means "include initial state from the child" so, if there is a child element for that prop, set also its initial state. And remember to propagate the initial state up all the way to the root component.)
 
-### Valid :initial-state
+### Check: Valid :initial-state
 
 Ideally, you would use the [template form](https://book.fulcrologic.com/#_template_mode) of `:initial-state` as it checks that you only include props that you query for.
 
@@ -66,12 +66,30 @@ Experimental configuration (subject to change):
 ;; OR: (when goog.DEBUG (set! js/holyjak.fulcro_troubleshooting._STAR_config_STAR_ {..}))
 ```
 
-### User components wrapped with [React Error Boundary](https://book.fulcrologic.com/#_react_errors)
+### Check: No duplicates in a query
+
+Warn when the same property is used repeatedly in a query (ignoring the content of sub-queries). 
+Duplicates don't make sense, since a property can only be included once in the props map anyway.
+It can cause unexpected behavior, in the least all but one of the occurrences being ignored.
+
+Example:
+
+```clojure
+(defsc User [_ props]
+  {:query [{:user/location (comp/get-query Location)} :user/name #_... :user/location]
+   :ident (fn [] [:component/id :User])}
+   ...)
+```
+
+![demo duplicates in a query](doc/demo-duplicate-query-props.png)
+
+### User components get wrapped with [React Error Boundary](https://book.fulcrologic.com/#_react_errors)
 
 Non-Fulcro components are wrapped with an Error Boundary so that if their render throws an exception, it is caught and displayed in the UI, instead of taking the whole page down.
+
 ## Status
 
-Alpha quality but already pretty useful library, under active development. Do not hesitate to try it out and share your feedback!
+Mature. Bugs are fixed, pull requests reviewed, and feature requests considered.
 
 Get in touch with `@holyjak` in the `#fulcro` channel of the Clojurians Slack if you have any questions, problems, ideas, or comments.
 
@@ -115,7 +133,7 @@ You need to do three things:
 ;; the code will still compile for prod release, when the lib is not included
 ```
 
-## TODO
+## Feature ideas
 
 - check initial state (if present) to be a map with keys <= query keys
 

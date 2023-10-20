@@ -5,7 +5,7 @@
    [com.fulcrologic.fulcro.components :as comp] 
    [com.fulcrologic.fulcro.dom :as dom]
    [com.fulcrologic.fulcro.react.error-boundaries :as fulcro.eb :refer [error-boundary]]
-   #_[edn-query-language.core :as eql]))
+   [edn-query-language.core :as eql]))
 
 (def ns--multiple-roots-renderer "com.fulcrologic.fulcro.rendering.multiple-roots-renderer")
 (def ns--error-boundaries "com.fulcrologic.fulcro.react.error-boundaries")
@@ -284,13 +284,13 @@
 ;;       (catch #?(:cljs :default :clj Throwable) e
 ;;         (ex-info "Some part of the combined query is not a valid EQL" {:query root-query} e)))))
 
-(defn query->props [query]
-  ;; Perhaps used edn/query->ast for 100% correct way rather than this quick and dirty check?
-  (map
-   #(if (map? %)
-      (ffirst %) ; just the key
-      %)
-   query))
+(defn- query->props
+  "Extract top-level prop names from a query, whether they are in a join or not."
+  [query]
+  ;; Note: Could contain :a, {:a [..}]}, {[:a '_] [..]} ...
+  (->> (eql/query->ast query)
+       :children
+       (map :dispatch-key)))
 
 (defn check-initial-state [component-instance]
   (when-let [st (and (comp/query component-instance)
@@ -315,6 +315,20 @@
       :else
       nil)))
 
+(defn check-query-for-duplicates [component-instance]
+  (when-let [q-props (some->> (comp/query component-instance)
+                        query->props
+                        sort)]
+    (when (> (count q-props) (count (set q-props)))
+      (let [dups (->> (map (fn [p1 p2] (#{p1} p2)) q-props (next q-props)) 
+                      (remove nil?)
+                      dedupe)]
+       (ex-info (str "*No duplicates in a query* Each prop must only appear once in a query but these are duplicated: "
+                     (str/join ", " dups) ".")
+                {:query-props q-props
+                 :duplicates dups
+                 :query (comp/query component-instance)})))))
+
 ;; ----------------- running + caching checks
 
 (defn log [& args]
@@ -322,7 +336,7 @@
 
 (def cached-errors (atom nil))
 
-(defn debounce 
+(defn debounce ; TODO goog.functions has `debounce`, should we use that?
   "If `f` has been run 'recently' then return the cached errors otherwise run and cache it.
    
    This is because `render` can be called multiple times in a row and we don't want to re-do the
@@ -345,7 +359,8 @@
                check-ident
                check-missing-child-prop
                check-query-inclusion
-               check-initial-state)
+               check-initial-state
+               check-query-for-duplicates)
               component-instance)
              (remove nil?)
              seq))))
@@ -374,7 +389,7 @@
       (real-render))
     (real-render)))
 
-(defn troubleshooting-render-middleware
+(defn ^:export troubleshooting-render-middleware
   "Add this middleware to your fulcro app (as `(app/fulcro-app {:render-middleware ...})`)
    to get notified in the UI when you did something wrong."
   [component-instance real-render]
