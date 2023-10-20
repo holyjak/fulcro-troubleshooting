@@ -123,8 +123,9 @@ You need to do three things:
 :aliases
 {:dev {:extra-deps {holyjak/fulcro-troubleshooting
                     {:git/url "https://github.com/holyjak/fulcro-troubleshooting"
-                     ;; BEWARE: run `clojure -X:deps git-resolve-tags` to insert the correct :sha
-                     :sha "2bf48d7897e9f36323d5bb6b806c3a605b0fc0a0" :tag "latest"
+                     ;; BEWARE: run `clojure -X:deps git-resolve-tags` to insert 
+                     ;; the correct :sha (warning: it will reformat the file :'( )
+                     :sha "51599bf965f89cf58812a5c7753ab69154eded62" :tag "latest"
                      }}}
 ```
 
