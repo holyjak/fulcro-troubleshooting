@@ -105,7 +105,7 @@ You need to do three things:
 {:dev {:extra-deps {holyjak/fulcro-troubleshooting
                     {:git/url "https://github.com/holyjak/fulcro-troubleshooting"
                      ;; BEWARE: run `clojure -X:deps git-resolve-tags` to insert the correct :sha
-                     :sha "494c1a4bf55fd752e26fe5122626b14c76b59247" :tag "latest"
+                     :sha "2bf48d7897e9f36323d5bb6b806c3a605b0fc0a0" :tag "latest"
                      }}}
 ```
 
