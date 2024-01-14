@@ -4,6 +4,14 @@
 ### Changed
 ### Added
 
+## [v10] - 2024-01-14
+### Changed
+
+Fix RAD/form false positives:
+
+1. Don't warn about nil ident on RAD report -Row components when the report is configured not to normalize its data
+2. Don't warn about nil joins when they are for subforms (typically 1:many ref, with no children created yet)
+
 ## [v9] - 2023-10-20
 ### Changed
 

@@ -1,11 +1,12 @@
 (ns holyjak.fulcro-troubleshooting
   (:require
-   [clojure.set]
    [clojure.string :as str]
    [com.fulcrologic.fulcro.components :as comp] 
    [com.fulcrologic.fulcro.dom :as dom]
+   [com.fulcrologic.fulcro.algorithms.form-state :as fs]
    [com.fulcrologic.fulcro.react.error-boundaries :as fulcro.eb :refer [error-boundary]]
-   [edn-query-language.core :as eql]))
+   [edn-query-language.core :as eql]
+   [clojure.set :as set]))
 
 (def ns--multiple-roots-renderer "com.fulcrologic.fulcro.rendering.multiple-roots-renderer")
 (def ns--error-boundaries "com.fulcrologic.fulcro.react.error-boundaries")
@@ -223,19 +224,26 @@
                      (link-query? %) (first)))
              (filter user-filter)
              set)
+        
+        ;; Subforms have often nil data, when no instance of the sub-entity
+        ;; has been added yet, so don't warn about those
+        ignorable-nil-joins
+        (-> props ::fs/config ::fs/subforms keys set)
 
-        joins-w-data
-        (->> (select-keys props relevant-join-props)
-             (filter (fn [[_ val]] (some? val)))
-             (map first)
-             set)]
+        joins-w-data-or-ok-nil
+        (set/union
+         (->> (select-keys props relevant-join-props)
+              (filter (fn [[_ val]] (some? val)))
+              (map first)
+              set)
+         ignorable-nil-joins)]
     
     ;; (when (= "com.example.ui/MainRouter" (comp/component-name component-instance))
     ;;   (def *dbg component-instance)
     ;;   #_(js/console.log "check-missing-child-prop for Root:" {:join-props join-props, :joins-w-data joins-w-data}))
     
     (when-let [{empty-join-props true, empty-root-join-props false} 
-               (not-empty (group-by keyword? (clojure.set/difference relevant-join-props joins-w-data)))]
+               (not-empty (group-by keyword? (clojure.set/difference relevant-join-props joins-w-data-or-ok-nil)))]
       (ex-info (str (some->> empty-join-props (empty-props-warning (comp/ident component-instance props)))
                     (some->> empty-root-join-props (empty-props-warning (comp/ident component-instance props))) ) 
                {:level :warn
@@ -246,7 +254,8 @@
 (defn check-ident 
   "Does the ident have the correct form?"
   [component-instance]
-  (let [ident (comp/ident component-instance (comp/props component-instance))
+  (let [props (comp/props component-instance)
+        ident (comp/ident component-instance props)
         d      {:ident ident, ::id :bad-ident}
         msg-ident-should (str "*Valid idents*: The ident `" (pr-str ident) "` should ")]
     (cond
@@ -258,6 +267,20 @@
            (or (ui-only-component? component-instance)
                (:allow-nil-ident *config*)))
       nil
+
+      (and (nil? ident)
+           (some-> component-instance 
+                   comp/get-computed 
+                   :report-instance 
+                   comp/component-options
+                   :com.fulcrologic.rad.report/denormalize?))
+      ; RAD Report -Row component configured not to normalize data
+      nil
+      
+      (nil? ident)
+      (ex-info (str msg-ident-should
+                    "likely be a vector such as `[:person/id 123]`, unless you want to disable normalization on purpose")
+               d)
 
       (not (vector? ident))
       (ex-info (str msg-ident-should

@@ -153,6 +153,15 @@ You need to do three things:
 ;; the code will still compile for prod release, when the lib is not included
 ```
 
+## Limitations
+
+### fulcro-rad-demo
+
+We have some false-positives when applied to [fulcro-rad-demo](https://github.com/fulcrologic/fulcro-rad-demo/):
+
+* The `LandingComponent` is misinterpreted as Root (b/c it has nil `comp/get-parent`) and thus we falsely warn that it should have nil ident
+* `/account-master-detail` - warns about nil join prop :ui/account until an account is selected from the list. (Not sure I can do anything about it, perhaps other than not checking :ui props?)
+ 
 ## Feature ideas
 
 - check initial state (if present) to be a map with keys <= query keys
