@@ -125,7 +125,7 @@ You need to do three things:
                     {:git/url "https://github.com/holyjak/fulcro-troubleshooting"
                      ;; BEWARE: run `clojure -X:deps git-resolve-tags` to insert 
                      ;; the correct :sha (warning: it will reformat the file :'( )
-                     :sha "51599bf965f89cf58812a5c7753ab69154eded62" :tag "latest"
+                     :sha "b3648778862b5f0cb792134f459092e59ec2d663" :tag "latest"
                      }}}
 ```
 
