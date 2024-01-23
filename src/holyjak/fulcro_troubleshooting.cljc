@@ -378,15 +378,15 @@
   (debounce
    component-instance
    #(do (log "Checking" (comp/component-name component-instance))
-        (->> ((juxt
-               check-ident
-               check-missing-child-prop
-               check-query-inclusion
-               check-initial-state
-               check-query-for-duplicates)
-              component-instance)
-             (remove nil?)
-             seq))))
+      (->> ((juxt
+             check-ident
+             check-missing-child-prop
+             check-query-inclusion
+             check-initial-state
+             check-query-for-duplicates)
+            component-instance)
+           (remove nil?)
+           seq))))
 
 ;; ----------------- public functions
 
@@ -396,11 +396,12 @@
 
 (defn ignore? [component-instance]
   (or
-    (is-error-boundary? component-instance)
-    (-> (component-ns component-instance)
+   (is-error-boundary? component-instance)
+   (let [cns (component-ns component-instance)]
                ;; For efficiency, do not wrap Fulcro's own components (...fulcro.*, ...rad.*)
                ;; though not sure whether / how much it matters               
-        (str/starts-with? "com.fulcrologic."))))
+     (and (str/starts-with? cns "com.fulcrologic.")
+          (not (str/ends-with? cns "-cards"))))))
 
 (defn maybe-wrap-with-errors [component-instance real-render]
   (if-let [errors (run-checks component-instance)]
@@ -415,7 +416,7 @@
 (defn ^:export troubleshooting-render-middleware
   "Add this middleware to your fulcro app (as `(app/fulcro-app {:render-middleware ...})`)
    to get notified in the UI when you did something wrong."
-  [component-instance real-render]
+  [component-instance real-render] 
   (cond
     (ignore? component-instance)
     (real-render)
@@ -424,5 +425,5 @@
     (maybe-wrap-with-errors component-instance real-render)
 
     :else
-    (error-boundary ; FIXME: Breaks F.Inspect's Element picker, see #6
+      (error-boundary ; FIXME: Breaks F.Inspect's Element picker, see #6
       (maybe-wrap-with-errors component-instance real-render))))
