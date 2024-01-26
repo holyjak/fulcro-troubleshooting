@@ -4,6 +4,14 @@ A development-time library for [Fulcro](https://fulcro.fulcrologic.com/) that he
 
 For additional help, see the [Fulcro Troubleshooting Decision Tree](https://blog.jakubholy.net/2020/troubleshooting-fulcro/).
 
+Table of content:
+
+* [Rationale](#rationale)
+* [What can it do?](#what-can-it-do)
+* [Status](#status)
+* [Usage](#usage)
+* ...
+
 ## Rationale
 
 Fulcro does an awesome job of checking your code and providing helpful messages but it is inherently limited by the fact that most of its checks are compile-time. `fulcro-troubleshooting` checks your application at run time and thus has much more insight into what is really going on. It also integrates with the UI so that you see the errors and warnings right in the UI, next to the place where you observe the problem.
@@ -129,6 +137,8 @@ You need to do three things:
                      }}}
 ```
 
+TIP: Use **Fulcro ≧ 3.7.1** (3.7.1 prevents some false positives).
+
 (2) Make sure that the `:dev` alias is activated and the library's namespace is automatically required:
 
 ```clojure
@@ -157,9 +167,8 @@ You need to do three things:
 
 ### fulcro-rad-demo
 
-We have some false-positives when applied to [fulcro-rad-demo](https://github.com/fulcrologic/fulcro-rad-demo/):
+We have some false-positives when applied to [fulcro-rad-demo](https://github.com/fulcrologic/fulcro-rad-demo/), as of 2024-01:
 
-* The `LandingComponent` is misinterpreted as Root (b/c it has nil `comp/get-parent`) and thus we falsely warn that it should have nil ident
 * `/account-master-detail` - warns about nil join prop :ui/account until an account is selected from the list. (Not sure I can do anything about it, perhaps other than not checking :ui props?)
  
 ## Feature ideas

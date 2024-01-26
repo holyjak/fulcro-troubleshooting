@@ -416,7 +416,7 @@
 (defn ^:export troubleshooting-render-middleware
   "Add this middleware to your fulcro app (as `(app/fulcro-app {:render-middleware ...})`)
    to get notified in the UI when you did something wrong."
-  [component-instance real-render] 
+  [component-instance real-render]
   (cond
     (ignore? component-instance)
     (real-render)
@@ -425,5 +425,5 @@
     (maybe-wrap-with-errors component-instance real-render)
 
     :else
-      (error-boundary ; FIXME: Breaks F.Inspect's Element picker, see #6
-      (maybe-wrap-with-errors component-instance real-render))))
+    (error-boundary ; FIXME: Breaks F.Inspect's Element picker, see #6
+     (maybe-wrap-with-errors component-instance real-render))))
